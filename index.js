@@ -33,11 +33,13 @@ scene.add(enemyTerritory);
 camera.position.z = 50;
 
 // Initialize OrbitControls
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableZoom = true;
-controls.target.set(0, 0, 0);
-controls.update();
-logEvent("Initialize orbit controls.", false, false);
+function iniOrbitControls() {
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableZoom = true;
+    controls.target.set(0, 0, 0);
+    controls.update();
+    logEvent("Initialize orbit controls.", false, false);
+}
 
 // Function to rotate the camera down
 function rotateCameraDown(targetAngle, duration) {
@@ -89,8 +91,13 @@ let selectedUnit = 'ant';
 
 // Initialize the game state
 function startGame() {
+    if (playerGold > 0) {
+        logEvent("You  must spend all your gold befor teh game starts", true, true);
+        return
+    }
     updateGoldDisplay();
     rotateCameraDown(45, 1.5); // Rotate down to 45 degrees over 1.5 seconds
+    iniOrbitControls()
     // Additional game initialization logic if needed
 }
 
@@ -115,8 +122,17 @@ function placeUnit(event) {
         const distance = -camera.position.z / dir.z; // Assuming the camera's location
         const position = camera.position.clone().add(dir.multiplyScalar(distance));
 
+        // Check if the position is within the battlefield bounds
+        const isInPlayerTerritory = position.x >= (ENEMY_TERRITORY_LEFT - 100) && position.x <= (ENEMY_TERRITORY_RIGHT - 50);
+        const isInEnemyTerritory = position.x >= ENEMY_TERRITORY_LEFT && position.x <= ENEMY_TERRITORY_RIGHT;
+
+        if (!isInPlayerTerritory && !isInEnemyTerritory) {
+            logEvent("Unit must be placed between the territories!", true, true);
+            return; // Stop further execution if invalid placement
+        }
+
         // Check if the position is within enemy territory
-        if (position.x >= ENEMY_TERRITORY_LEFT && position.x <= ENEMY_TERRITORY_RIGHT) {
+        if (isInEnemyTerritory) {
             logEvent("Cannot place unit in enemy territory!", true, true);
             return; // Stop further execution if invalid placement
         }
