@@ -89,6 +89,94 @@ const ENEMY_TERRITORY_RIGHT = 100;  // Right side boundary for enemy territory
 // This is the type of unit the player has selected to place next 
 let selectedUnit = 'ant';
 
+// Define unit costs for enemy units
+const enemyUnitCosts = {
+    wasp: 250,
+    blackAnt: 50,
+    greyRoller: 100
+};
+
+// Define equivalent attributes for enemy units
+const WASP_HEALTH = 10;
+const WASP_DAMAGE = 10;
+const BLACK_ANT_HEALTH = 50;
+const BLACK_ANT_DAMAGE = 5;
+const GREY_ROLLER_HEALTH = 100;
+const GREY_ROLLER_DAMAGE = 1;
+
+const enemyUnits = [
+    { type: 'wasp', cost: enemyUnitCosts.wasp, health: WASP_HEALTH, damage: WASP_DAMAGE },
+    { type: 'blackAnt', cost: enemyUnitCosts.blackAnt, health: BLACK_ANT_HEALTH, damage: BLACK_ANT_DAMAGE },
+    { type: 'greyRoller', cost: enemyUnitCosts.greyRoller, health: GREY_ROLLER_HEALTH, damage: GREY_ROLLER_DAMAGE }
+];
+
+// Function to generate enemy units
+function generateEnemyUnits() {
+    const numberOfUnits = 5; // Adjust this number as needed
+    const totalGold = 500; // Total gold available for enemy units
+    let spentGold = 0;
+
+    for (let i = 0; i < numberOfUnits; i++) {
+        const randomIndex = Math.floor(Math.random() * enemyUnits.length);
+        const unit = enemyUnits[randomIndex];
+
+        // Check if there's enough gold to place the unit
+        if (spentGold + unit.cost <= totalGold) {
+            // Determine a random position on enemy territory
+            const randomX = Math.random() * (ENEMY_TERRITORY_RIGHT - ENEMY_TERRITORY_LEFT) + ENEMY_TERRITORY_LEFT;
+
+            // Create the unit at the random position
+            createEnemyUnit(unit.type, randomX, 0); // Assuming y=0 for flat plane
+            spentGold += unit.cost; // Update spent gold
+        }
+    }
+}
+
+// Function to create enemy unit
+function createEnemyUnit(unitType, x, y) {
+    // Create unit based on type
+    let color;
+    let health;
+    let damage;
+    switch (unitType) {
+        case 'wasp':
+            color = 0xffa500; // Orange
+            health = WASP_HEALTH;
+            damage = WASP_DAMAGE;
+            break;
+        case 'blackAnt':
+            color = 0x000000; // Black
+            health = BLACK_ANT_HEALTH;
+            damage = BLACK_ANT_DAMAGE;
+            break;
+        case 'greyRoller':
+            color = 0x808080; // Grey
+            health = GREY_ROLLER_HEALTH;
+            damage = GREY_ROLLER_DAMAGE;
+            break;
+        default:
+            return; // Invalid unit type
+    }
+
+    // Create the geometry and material for the unit
+    const geometry = new THREE.BoxGeometry(1, 1, 1); // Placeholder shape
+    const material = new THREE.MeshBasicMaterial({ color });
+    const unit = new THREE.Mesh(geometry, material);
+
+    // Set position to the specified position
+    unit.position.set(x, y, 0);
+    unit.userData = {
+        health: health,
+        damage: damage,
+        velocity: new THREE.Vector3(0, 0, 0),
+        unitType: unitType
+    };
+    scene.add(unit);
+}
+
+// generate enemies before start of the game 
+generateEnemyUnits();
+
 // Initialize the game state
 function startGame() {
     if (playerGold > 0) {
