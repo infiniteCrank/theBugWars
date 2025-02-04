@@ -14,7 +14,6 @@ const geometry = new THREE.PlaneGeometry(100, 100);
 const material = new THREE.MeshBasicMaterial({ color: 0x00ff00, side: THREE.DoubleSide });
 const plane = new THREE.Mesh(geometry, material);
 scene.add(plane);
-//plane.rotation.x = - Math.PI / 2;  // Rotate the plane to lie flat
 
 camera.position.z = 50;
 
