@@ -10,10 +10,25 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
 // Create a basic plane to represent the battlefield
-const geometry = new THREE.PlaneGeometry(100, 100);
-const material = new THREE.MeshBasicMaterial({ color: 0x00ff00, side: THREE.DoubleSide });
-const plane = new THREE.Mesh(geometry, material);
-scene.add(plane);
+// Create a geometry for the first half
+const playerTerritoryMesh = new THREE.PlaneGeometry(100, 100);
+const playerTerritoryMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, side: THREE.DoubleSide });
+const playerTerritory = new THREE.Mesh(playerTerritoryMesh, playerTerritoryMaterial);
+
+// Position the first half (left side)
+playerTerritory.position.x = -50; // Move it to the left
+playerTerritory.rotation.z = Math.PI / 2; //Rotate to display correctly
+scene.add(playerTerritory);
+
+// Create a geometry for the second half
+const enemyTerritoryMesh = new THREE.PlaneGeometry(100, 100);
+const enemyTerritoryMaterial = new THREE.MeshBasicMaterial({ color: 0x004400, side: THREE.DoubleSide }); // Darker green
+const enemyTerritory = new THREE.Mesh(enemyTerritoryMesh, enemyTerritoryMaterial);
+
+// Position the second half (right side)
+enemyTerritory.position.x = 50; // Move it to the right
+enemyTerritory.rotation.z = Math.PI / 2; //Rotate to display correctly
+scene.add(enemyTerritory);
 
 camera.position.z = 50;
 
@@ -23,6 +38,29 @@ controls.enableZoom = true;
 controls.target.set(0, 0, 0);
 controls.update();
 logEvent("Initialize orbit controls.", false, false);
+
+// Function to rotate the camera down
+function rotateCameraDown(targetAngle, duration) {
+    const targetYRotation = THREE.MathUtils.degToRad(targetAngle);
+    const initialYRotation = camera.rotation.x;
+
+    const startTime = performance.now();
+
+    function animateRotation(now) {
+        const elapsedTime = (now - startTime) / 1000; // Convert to seconds
+        const progress = Math.min(elapsedTime / duration, 1); // Normalize to [0, 1]
+
+        // Interpolating between initial and target rotation
+        camera.rotation.x = THREE.MathUtils.lerp(initialYRotation, targetYRotation, progress);
+
+        // Continue the animation until the duration is complete
+        if (progress < 1) {
+            requestAnimationFrame(animateRotation);
+        }
+    }
+
+    requestAnimationFrame(animateRotation);
+}
 
 //**************************************************************************
 //*         Begin Game Logic 
@@ -49,6 +87,7 @@ let selectedUnit = 'ant';
 // Initialize the game state
 function startGame() {
     updateGoldDisplay();
+    rotateCameraDown(45, 1.5); // Rotate down to 45 degrees over 1.5 seconds
     // Additional game initialization logic if needed
 }
 
@@ -138,6 +177,9 @@ animate();
 //*************************************************************
 // *        UI Logic Below 
 // ************************************************************/
+
+// Add event listener for the start button
+document.getElementById('startButton').addEventListener('click', startGame);
 
 // Set up event listener for mouse click on the renderer
 renderer.domElement.addEventListener('click', placeUnit);
