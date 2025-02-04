@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Bug Wars</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        #startButton { 
+            position: absolute; 
+            top: 20px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            padding: 10px 20px; 
+            font-size: 16px; 
+            cursor: pointer; 
+            z-index: 100;
+        }
+        #playerGold {
+            position: absolute; 
+            top: 20px; 
+            left: 1%; 
+            color: #FFFFFF;
+        }
+        #enemyGold {
+            position: absolute; 
+            top: 20px; 
+            left: 10%; 
+            color: #FFFFFF;
+        }
+        #waveNumber {
+            position: absolute; 
+            top: 20px; 
+            left: 20%; 
+            color: #FFFFFF;
+        }
+        .event-log {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 300px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: 1px solid white;
+            padding: 10px;
+            overflow-y: auto; /* Enables vertical scrollbar when overflowing */
+            cursor: move; /* Indication that this log can be moved */
+            z-index: 1000; /* Ensure the log appears on top */
+        }
+
+        h3 {
+            margin: 0 0 10px;
+            display: flex; /* For layout of button */
+            justify-content: space-between; /* Space between header text and button */
+        }
+
+        ul {
+            max-height: 350px; /* Set a max height for the log entries */
+            overflow-y: auto; /* Enable vertical scrolling */
+        }
+
+        .hidden {
+            display: none; /* Class to hide the log content */
+        }
+
+        .highlight {
+            background-color: yellow;
+            color: black;
+        }
+    </style>
+</head>
+<body>
+    <button id="startButton">Start</button>
+    <div id="playerGold">Player Gold: 0</div>
+    <div id="enemyGold">Enemy Gold: 0</div>
+    <div id="waveNumber">Wave: 1</div>
+    <div id="eventLog" class="event-log">
+        <h3>Event Log  <button id="toggleButton">Toggle</button> </h3>
+        <ul id="logList"></ul>
+    </div>
+  <!-- Three.js CDN -->
+  <script type="importmap">
+    {
+        "imports": {
+            "three": "http://localhost:8080/node_modules/three/build/three.module.min.js",
+            "addons": "http://localhost:8080/node_modules/three/examples/jsm/Addons.js"
+        }
+    }
+</script>  
+  <!-- Your JavaScript file -->
+  <script src="http://localhost:8080/node_modules/cannon/build/cannon.min.js"></script>
+  <script type="module" src="http://localhost:8080/node_modules/three/examples/jsm/loaders/FontLoader.js"></script>
+  <script type="module" src="http://localhost:8080/node_modules/three/examples/jsm/geometries/TextGeometry.js"></script>
+  <script type="module" src="index.js"></script>
+</body>
+</html>
