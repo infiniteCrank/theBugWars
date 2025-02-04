@@ -80,6 +80,9 @@ const ANT_HEALTH = 50;
 const ANT_DAMAGE = 5;
 const BEE_HEALTH = 10;
 const BEE_DAMAGE = 10;
+// Define enemy territory boundaries
+const ENEMY_TERRITORY_LEFT = 0;   // Left side boundary for enemy territory
+const ENEMY_TERRITORY_RIGHT = 100;  // Right side boundary for enemy territory
 
 // This is the type of unit the player has selected to place next 
 let selectedUnit = 'ant';
@@ -98,11 +101,31 @@ function placeUnit(event) {
 
     const cost = unitCosts[unitType];
     if (playerGold >= cost) {
+        // Convert screen coordinates to normalized device coordinates
+        const rect = renderer.domElement.getBoundingClientRect();
+        const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+        // Create a vector from the normalized device coordinates
+        const vector = new THREE.Vector3(x, y, 0.5); // Use z = 0.5 for depth
+        vector.unproject(camera); // Unproject the coordinates onto the 3D space
+
+        // Calculate the position on the plane
+        const dir = vector.sub(camera.position).normalize();
+        const distance = -camera.position.z / dir.z; // Assuming the camera's location
+        const position = camera.position.clone().add(dir.multiplyScalar(distance));
+
+        // Check if the position is within enemy territory
+        if (position.x >= ENEMY_TERRITORY_LEFT && position.x <= ENEMY_TERRITORY_RIGHT) {
+            logEvent("Cannot place unit in enemy territory!", true, true);
+            return; // Stop further execution if invalid placement
+        }
+
         // Subtract cost from player gold
         playerGold -= cost;
         updateGoldDisplay();
 
-        // Create and place the unit at the clicked location
+        // Create and place the unit at the calculated position
         createUnit(unitType, event.clientX, event.clientY);
 
         // Log the event
