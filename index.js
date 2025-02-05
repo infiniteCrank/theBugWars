@@ -219,6 +219,38 @@ function startGame() {
     gamestarted = true;
 }
 
+function checkGameStatus() {
+    const redAnts = getUnitsOfType('ant');
+    const blackAnts = getUnitsOfType('blackAnt');
+    const greyRollers = getUnitsOfType('greyRoller');
+    const blueBeetles = getUnitsOfType('beetle');
+    const bees = getUnitsOfType('bee');
+    const wasps = getUnitsOfType('wasp');
+
+    // Check if all enemy units are defeated
+    if (greyRollers.length === 0 &&
+        wasps.length === 0 &&
+        blackAnts.length === 0) {
+        logEvent("All enemy units defeated! You win!", true, true);
+        endGame(); // Call a function to handle the end of the game
+    }
+
+    // Check if all player units are defeated
+    if (redAnts.length === 0 &&
+        blackAnts.length === 0 &&
+        blueBeetles.length === 0 &&
+        bees.length === 0) {
+        logEvent("All your units have been defeated! You lose!", true, true);
+        endGame(); // Call a function to handle the end of the game
+    }
+}
+
+function endGame() {
+    gamestarted = false; // Stop the game logic
+    // Optionally, you could add logic here for restarting the game or providing options to the player.
+    // This could involve resetting the scene, updating the UI, etc.
+    logEvent("Game Over!", false, true);
+}
 // ************************************************************************************
 // *        Main combat functions
 // ***********************************************************************************/
@@ -248,8 +280,15 @@ function initiateCombat() {
     moveAndAttack(bees, blackAnts);
     moveAndAttack(wasps, redAnts);
 
-    // Handle remaining units
-    handleRemainingUnits(redAnts, blackAnts, greyRollers, blueBeetles);
+    // Check the status of units and trigger appropriate moves
+    if (areAllAntsDefeated()) {
+        initiateFinalCombat(); // Initiate final combat if all ants are defeated
+    } else {
+        handleRemainingUnits(redAnts, blackAnts, greyRollers, blueBeetles);
+    }
+
+    // Check the game status
+    checkGameStatus();
 }
 
 function moveAndAttack(attackingUnits, primaryTargets, secondaryTargets) {
