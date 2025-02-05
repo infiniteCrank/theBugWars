@@ -219,6 +219,7 @@ function startGame() {
     gamestarted = true;
 }
 
+// Update the checkGameStatus function
 function checkGameStatus() {
     const redAnts = getUnitsOfType('ant');
     const blackAnts = getUnitsOfType('blackAnt');
@@ -226,6 +227,12 @@ function checkGameStatus() {
     const blueBeetles = getUnitsOfType('beetle');
     const bees = getUnitsOfType('bee');
     const wasps = getUnitsOfType('wasp');
+
+    // Check if all enemy units are defeated (only wasps and bees left)
+    if (greyRollers.length === 0 && wasps.length > 0 && bees.length > 0 && blackAnts.length === 0 && redAnts.length === 0 && blueBeetles.length === 0) {
+        logEvent("Only wasps and bees remain. They will battle continuously!", true, true);
+        continuousWaspBeeBattle(wasps, bees); // Start continuous battle
+    }
 
     // Check if all enemy units are defeated
     if (greyRollers.length === 0 &&
@@ -235,11 +242,9 @@ function checkGameStatus() {
         endGame(); // Call a function to handle the end of the game
     }
 
+
     // Check if all player units are defeated
-    if (redAnts.length === 0 &&
-        blackAnts.length === 0 &&
-        blueBeetles.length === 0 &&
-        bees.length === 0) {
+    if (redAnts.length === 0 && blackAnts.length === 0 && blueBeetles.length === 0 && bees.length === 0) {
         logEvent("All your units have been defeated! You lose!", true, true);
         endGame(); // Call a function to handle the end of the game
     }
@@ -287,8 +292,6 @@ function initiateCombat() {
         handleRemainingUnits(redAnts, blackAnts, greyRollers, blueBeetles);
     }
 
-    // Check the game status
-    checkGameStatus();
 }
 
 function moveAndAttack(attackingUnits, primaryTargets, secondaryTargets) {
@@ -424,6 +427,45 @@ function handleRemainingUnits(redAnts, blackAnts, greyRollers, blueBeetles) {
     }
 }
 
+// Function to handle continuous battle between wasps and bees
+function continuousWaspBeeBattle(wasps, bees) {
+    wasps.forEach(wasp => {
+        const targetBee = bees.find(bee => getDistance(wasp.position, bee.position) < ATTACK_RANGE);
+        if (targetBee) {
+            attackUnit(wasp, targetBee);
+        } else {
+            const closestBee = bees.reduce((prev, curr) =>
+                getDistance(wasp.position, curr.position) < getDistance(wasp.position, prev.position) ? curr : prev
+            );
+            moveTowards(wasp, closestBee);
+        }
+    });
+
+    bees.forEach(bee => {
+        const targetWasp = wasps.find(wasp => getDistance(bee.position, wasp.position) < ATTACK_RANGE);
+        if (targetWasp) {
+            attackUnit(bee, targetWasp);
+        } else {
+            const closestWasp = wasps.reduce((prev, curr) =>
+                getDistance(bee.position, curr.position) < getDistance(bee.position, prev.position) ? curr : prev
+            );
+            moveTowards(bee, closestWasp);
+        }
+    });
+
+    // Check if the battle continues
+    const anyWaspsAlive = wasps.some(wasp => wasp.userData.health > 0);
+    const anyBeesAlive = bees.some(bee => bee.userData.health > 0);
+
+    // If at least one type is still alive, keep checking
+    if (anyWaspsAlive && anyBeesAlive) {
+        requestAnimationFrame(() => continuousWaspBeeBattle(wasps, bees));
+    } else {
+        logEvent("The battle has ended!", true, true);
+        endGame(); // or handle end game differently
+    }
+}
+
 //********************************************************************************************* 
 //          Unit placement logic
 //*********************************************************************************************/
@@ -539,6 +581,7 @@ function animate() {
     // Update combat logic in each animation frame
     if (gamestarted === true) {
         initiateCombat();
+        checkGameStatus(); // Ensure we check game status continuously
     }
 
 }
