@@ -41,7 +41,7 @@ function iniOrbitControls() {
     logEvent("Initialize orbit controls.", false, false);
 }
 
-// Function to rotate the camera down
+// Function to rotate the camera down and zoom out
 function rotateCameraDown(targetAngle, duration) {
     const targetYRotation = THREE.MathUtils.degToRad(targetAngle);
     const initialYRotation = camera.rotation.x;
@@ -58,10 +58,34 @@ function rotateCameraDown(targetAngle, duration) {
         // Continue the animation until the duration is complete
         if (progress < 1) {
             requestAnimationFrame(animateRotation);
+        } else {
+            // Once rotation is done, zoom out smoothly
+            zoomOutCamera(75, 1); // Assuming your current z position is around 50
         }
     }
 
     requestAnimationFrame(animateRotation);
+}
+
+// Function to zoom out the camera
+function zoomOutCamera(targetZPosition, duration) {
+    const initialZPosition = camera.position.z;
+    const startTime = performance.now();
+
+    function animateZoom(now) {
+        const elapsedTime = (now - startTime) / 1000; // Convert to seconds
+        const progress = Math.min(elapsedTime / duration, 1); // Normalize to [0, 1]
+
+        // Interpolating between initial and target z position
+        camera.position.z = THREE.MathUtils.lerp(initialZPosition, targetZPosition, progress);
+
+        // Continue the animation until the duration is complete
+        if (progress < 1) {
+            requestAnimationFrame(animateZoom);
+        }
+    }
+
+    requestAnimationFrame(animateZoom);
 }
 
 //**************************************************************************
@@ -69,6 +93,10 @@ function rotateCameraDown(targetAngle, duration) {
 //*********************************************************************** */
 
 let playerGold = 500; // Starting player gold
+const ATTACK_INTERVAL = 0; // Attack every second
+const ATTACK_RANGE = 1.5; // Distance within which units can attack
+let lastAttackTime = {}; // Track the last attack time of each unit
+let gamestarted = false
 
 // unit costs
 const unitCosts = {
@@ -186,10 +214,157 @@ function startGame() {
     updateGoldDisplay();
     rotateCameraDown(45, 1.5); // Rotate down to 45 degrees over 1.5 seconds
     iniOrbitControls()
-    // Additional game initialization logic if needed
+    // Initialize last attack time for all units
+    initializeLastAttackTime();
+    gamestarted = true;
 }
 
-// Unit placement logic
+// ************************************************************************************
+// *        Main combat functions
+// ***********************************************************************************/
+
+
+// Initialize last attack time for all units
+function initializeLastAttackTime() {
+    scene.children.forEach(unit => {
+        if (unit.userData) {
+            lastAttackTime[unit.uuid] = Date.now(); // Set last attack to the current time
+        }
+    });
+}
+
+// Initiate combat for unit types
+function initiateCombat() {
+    const redAnts = getUnitsOfType('ant');
+    const greyRollers = getUnitsOfType('greyRoller');
+    const blackAnts = getUnitsOfType('blackAnt');
+    const blueBeetles = getUnitsOfType('beetle');
+    const bees = getUnitsOfType('bee');
+    const wasps = getUnitsOfType('wasp');
+
+    // Process each unit type for their combat interactions
+    moveAndAttack(redAnts, greyRollers, blackAnts);
+    moveAndAttack(blackAnts, blueBeetles, redAnts);
+    moveAndAttack(bees, blackAnts);
+    moveAndAttack(wasps, redAnts);
+
+    // Check if all red and black ants are defeated
+    if (areAllAntsDefeated()) {
+        initiateFinalCombat(); // Initiate final combat if all ants are defeated
+    }
+}
+
+// Modified move and attack logic
+function moveAndAttack(attackingUnits, primaryTargets, secondaryTargets) {
+    attackingUnits.forEach(attacker => {
+        let target = primaryTargets.find(defender => getDistance(attacker.position, defender.position) < ATTACK_RANGE);
+
+        // Check if enough time has passed since last attack
+        const currentTime = Date.now();
+        if (target && currentTime - lastAttackTime[attacker.uuid] >= ATTACK_INTERVAL) {
+            attackUnit(attacker, target);
+            lastAttackTime[attacker.uuid] = currentTime; // Update the last attack time
+        } else {
+            // Move toward the target if no attack happens
+            if (primaryTargets.length > 0) {
+                const closestTarget = primaryTargets.reduce((prev, curr) =>
+                    getDistance(attacker.position, curr.position) < getDistance(attacker.position, prev.position) ? curr : prev
+                );
+
+                moveTowards(attacker, closestTarget);
+            } else if (secondaryTargets) { // If no primary targets, go after secondary targets
+                target = secondaryTargets.find(defender => getDistance(attacker.position, defender.position) < ATTACK_RANGE);
+                if (target && currentTime - lastAttackTime[attacker.uuid] >= ATTACK_INTERVAL) {
+                    attackUnit(attacker, target);
+                    lastAttackTime[attacker.uuid] = currentTime; // Update the last attack time
+                } else if (secondaryTargets.length > 0) {
+                    const closestTarget = secondaryTargets.reduce((prev, curr) =>
+                        getDistance(attacker.position, curr.position) < getDistance(attacker.position, prev.position) ? curr : prev
+                    );
+
+                    moveTowards(attacker, closestTarget);
+                }
+            }
+        }
+    });
+}
+
+// Function to calculate distance
+function getDistance(pos1, pos2) {
+    return pos1.distanceTo(pos2);
+}
+
+// Function to move unit towards a target
+function moveTowards(unit, target) {
+    const direction = new THREE.Vector3().subVectors(target.position, unit.position).normalize();
+    unit.position.add(direction.multiplyScalar(0.1)); // Move towards the target by a small factor
+}
+
+// Function to attack another unit
+function attackUnit(attacker, target) {
+    if (attacker.userData.health > 0 && target.userData.health > 0) {
+        target.userData.health -= attacker.userData.damage; // Deal damage
+        logEvent(`${attacker.userData.unitType} attacks ${target.userData.unitType}`, true, false);
+
+        // Check if the target's health drops to zero
+        if (target.userData.health <= 0) {
+            scene.remove(target); // Remove the defeated unit from the scene
+            logEvent(`${target.userData.unitType} is defeated!`, false, true);
+        }
+    }
+}
+
+// Helper function to get units of a specific type
+function getUnitsOfType(unitType) {
+    return scene.children.filter(unit => unit.userData && unit.userData.unitType === unitType);
+}
+
+//********************************************************************************************
+// *        Finnal combat 
+// *******************************************************************************************/
+
+function areAllAntsDefeated() {
+    const redAnts = getUnitsOfType('ant');
+    const blackAnts = getUnitsOfType('blackAnt');
+    return redAnts.length === 0 && blackAnts.length === 0;
+}
+
+function initiateFinalCombat() {
+    const beetles = getUnitsOfType('beetle');
+    const wasps = getUnitsOfType('wasp');
+    const bees = getUnitsOfType('bee');
+    const greyRollers = getUnitsOfType('greyRoller');
+
+    // Move beetles towards wasps
+    beetles.forEach(beetle => {
+        const targetWasp = wasps.find(wasp => getDistance(beetle.position, wasp.position) < ATTACK_RANGE);
+        if (targetWasp) {
+            attackUnit(beetle, targetWasp);
+        } else {
+            const closestWasp = wasps.reduce((prev, curr) =>
+                getDistance(beetle.position, curr.position) < getDistance(beetle.position, prev.position) ? curr : prev
+            );
+            moveTowards(beetle, closestWasp);
+        }
+    });
+
+    // Move bees towards grey rollers
+    bees.forEach(bee => {
+        const targetGreyRoller = greyRollers.find(roller => getDistance(bee.position, roller.position) < ATTACK_RANGE);
+        if (targetGreyRoller) {
+            attackUnit(bee, targetGreyRoller);
+        } else {
+            const closestGreyRoller = greyRollers.reduce((prev, curr) =>
+                getDistance(bee.position, curr.position) < getDistance(bee.position, prev.position) ? curr : prev
+            );
+            moveTowards(bee, closestGreyRoller);
+        }
+    });
+}
+
+//********************************************************************************************* 
+//          Unit placement logic
+//*********************************************************************************************/
 function placeUnit(event) {
     const unitType = selectedUnit; // Assuming selectedUnit is defined elsewhere
     if (!unitType) return; // No unit type selected
@@ -298,6 +473,12 @@ function createUnit(unitType, mouseX, mouseY) {
 function animate() {
     requestAnimationFrame(animate);
     renderer.render(scene, camera);
+
+    // Update combat logic in each animation frame
+    if (gamestarted === true) {
+        initiateCombat();
+    }
+
 }
 animate();
 
