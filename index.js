@@ -243,47 +243,60 @@ function initiateCombat() {
     const wasps = getUnitsOfType('wasp');
 
     // Process each unit type for their combat interactions
-    moveAndAttack(redAnts, greyRollers, blackAnts);
-    moveAndAttack(blackAnts, blueBeetles, redAnts);
+    moveAndAttack(redAnts, blackAnts, greyRollers);
+    moveAndAttack(blackAnts, redAnts, blueBeetles);
     moveAndAttack(bees, blackAnts);
     moveAndAttack(wasps, redAnts);
 
-    // Check if all red and black ants are defeated
+    // Check the status of units and trigger appropriate moves
     if (areAllAntsDefeated()) {
         initiateFinalCombat(); // Initiate final combat if all ants are defeated
+    } else {
+        handleRemainingUnits(redAnts, blackAnts, greyRollers, blueBeetles);
     }
 }
 
-// Modified move and attack logic
+// New function to handle remaining units behaviors
+function handleRemainingUnits(redAnts, blackAnts, greyRollers, blueBeetles) {
+    if (redAnts.length > 0 && blackAnts.length === 0) {
+        // Red ants move towards grey rollers
+        moveAndAttack(redAnts, greyRollers);
+    } else if (blackAnts.length > 0 && redAnts.length === 0) {
+        // Black ants move towards beetles
+        moveAndAttack(blackAnts, blueBeetles);
+    }
+}
+
 function moveAndAttack(attackingUnits, primaryTargets, secondaryTargets) {
     attackingUnits.forEach(attacker => {
+        const currentTime = Date.now();
+
         let target = primaryTargets.find(defender => getDistance(attacker.position, defender.position) < ATTACK_RANGE);
 
-        // Check if enough time has passed since last attack
-        const currentTime = Date.now();
+        // Attack if the target is in range and the attack interval has passed
         if (target && currentTime - lastAttackTime[attacker.uuid] >= ATTACK_INTERVAL) {
             attackUnit(attacker, target);
             lastAttackTime[attacker.uuid] = currentTime; // Update the last attack time
-        } else {
-            // Move toward the target if no attack happens
-            if (primaryTargets.length > 0) {
-                const closestTarget = primaryTargets.reduce((prev, curr) =>
+        } else if (primaryTargets.length > 0) { // If no attack occurs, move towards the target
+            const closestTarget = primaryTargets.reduce((prev, curr) =>
+                getDistance(attacker.position, curr.position) < getDistance(attacker.position, prev.position) ? curr : prev
+            );
+
+            moveTowards(attacker, closestTarget);
+        }
+
+        // If no primary targets, check secondary targets
+        if (!target && secondaryTargets) {
+            target = secondaryTargets.find(defender => getDistance(attacker.position, defender.position) < ATTACK_RANGE);
+            if (target && currentTime - lastAttackTime[attacker.uuid] >= ATTACK_INTERVAL) {
+                attackUnit(attacker, target);
+                lastAttackTime[attacker.uuid] = currentTime; // Update the last attack time
+            } else if (secondaryTargets.length > 0) {
+                const closestTarget = secondaryTargets.reduce((prev, curr) =>
                     getDistance(attacker.position, curr.position) < getDistance(attacker.position, prev.position) ? curr : prev
                 );
 
                 moveTowards(attacker, closestTarget);
-            } else if (secondaryTargets) { // If no primary targets, go after secondary targets
-                target = secondaryTargets.find(defender => getDistance(attacker.position, defender.position) < ATTACK_RANGE);
-                if (target && currentTime - lastAttackTime[attacker.uuid] >= ATTACK_INTERVAL) {
-                    attackUnit(attacker, target);
-                    lastAttackTime[attacker.uuid] = currentTime; // Update the last attack time
-                } else if (secondaryTargets.length > 0) {
-                    const closestTarget = secondaryTargets.reduce((prev, curr) =>
-                        getDistance(attacker.position, curr.position) < getDistance(attacker.position, prev.position) ? curr : prev
-                    );
-
-                    moveTowards(attacker, closestTarget);
-                }
             }
         }
     });
@@ -340,7 +353,7 @@ function initiateFinalCombat() {
         const targetWasp = wasps.find(wasp => getDistance(beetle.position, wasp.position) < ATTACK_RANGE);
         if (targetWasp) {
             attackUnit(beetle, targetWasp);
-        } else {
+        } else if (wasps.length > 0) {
             const closestWasp = wasps.reduce((prev, curr) =>
                 getDistance(beetle.position, curr.position) < getDistance(beetle.position, prev.position) ? curr : prev
             );
@@ -353,13 +366,26 @@ function initiateFinalCombat() {
         const targetGreyRoller = greyRollers.find(roller => getDistance(bee.position, roller.position) < ATTACK_RANGE);
         if (targetGreyRoller) {
             attackUnit(bee, targetGreyRoller);
-        } else {
+        } else if (greyRollers.length > 0) {
             const closestGreyRoller = greyRollers.reduce((prev, curr) =>
                 getDistance(bee.position, curr.position) < getDistance(bee.position, prev.position) ? curr : prev
             );
             moveTowards(bee, closestGreyRoller);
         }
     });
+
+    // If no ants, initiate final battle between beetles and grey rollers
+    if (beetles.length === 0 && wasps.length === 0) {
+        greyRollers.forEach(greyRoller => {
+            let closestBeetle;
+            if (beetles.length > 0) {
+                closestBeetle = beetles.reduce((prev, curr) =>
+                    getDistance(greyRoller.position, curr.position) < getDistance(greyRoller.position, prev.position) ? curr : prev
+                );
+                moveTowards(greyRoller, closestBeetle);
+            }
+        });
+    }
 }
 
 //********************************************************************************************* 
@@ -462,7 +488,7 @@ function createUnit(unitType, mouseX, mouseY) {
     unit.position.set(position.x, position.y, 0); // Adjust z as needed
     unit.userData = {
         health: health,
-        health: damage,
+        damage: damage,
         velocity: new THREE.Vector3(0, 0, 0),
         unitType: unitType
     };
