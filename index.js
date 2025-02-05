@@ -248,23 +248,8 @@ function initiateCombat() {
     moveAndAttack(bees, blackAnts);
     moveAndAttack(wasps, redAnts);
 
-    // Check the status of units and trigger appropriate moves
-    if (areAllAntsDefeated()) {
-        initiateFinalCombat(); // Initiate final combat if all ants are defeated
-    } else {
-        handleRemainingUnits(redAnts, blackAnts, greyRollers, blueBeetles);
-    }
-}
-
-// New function to handle remaining units behaviors
-function handleRemainingUnits(redAnts, blackAnts, greyRollers, blueBeetles) {
-    if (redAnts.length > 0 && blackAnts.length === 0) {
-        // Red ants move towards grey rollers
-        moveAndAttack(redAnts, greyRollers);
-    } else if (blackAnts.length > 0 && redAnts.length === 0) {
-        // Black ants move towards beetles
-        moveAndAttack(blackAnts, blueBeetles);
-    }
+    // Handle remaining units
+    handleRemainingUnits(redAnts, blackAnts, greyRollers, blueBeetles);
 }
 
 function moveAndAttack(attackingUnits, primaryTargets, secondaryTargets) {
@@ -385,6 +370,18 @@ function initiateFinalCombat() {
                 moveTowards(greyRoller, closestBeetle);
             }
         });
+    }
+}
+
+function handleRemainingUnits(redAnts, blackAnts, greyRollers, blueBeetles) {
+    if (blackAnts.length === 0) {
+        // Black ants are defeated, red ants should engage grey rollers
+        if (redAnts.length > 0) {
+            moveAndAttack(redAnts, greyRollers);
+        }
+    } else if (redAnts.length > 0 && blackAnts.length > 0) {
+        // When both red ants and black ants are present, prioritize attacks
+        moveAndAttack(redAnts, blackAnts);
     }
 }
 
