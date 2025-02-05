@@ -461,6 +461,15 @@ function continuousWaspBeeBattle(wasps, bees) {
     if (anyWaspsAlive && anyBeesAlive) {
         requestAnimationFrame(() => continuousWaspBeeBattle(wasps, bees));
     } else {
+        if (anyWaspsAlive) {
+            logEvent("All your units have been defeated! You lose!", true, true);
+            endGame(); // Call a function to handle the end of the game
+        }
+        if (anyBeesAlive) {
+            logEvent("All enemy units defeated! You win!", true, true);
+            endGame(); // Call a function to handle the end of the game
+        }
+
         logEvent("The battle has ended!", true, true);
         endGame(); // or handle end game differently
     }
