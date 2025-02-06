@@ -219,7 +219,7 @@ function startGame() {
     gamestarted = true;
 }
 
-// Update the checkGameStatus function
+// Updated checkGameStatus to incorporate the beetle and grey roller rule
 function checkGameStatus() {
     const redAnts = getUnitsOfType('ant');
     const blackAnts = getUnitsOfType('blackAnt');
@@ -228,10 +228,21 @@ function checkGameStatus() {
     const bees = getUnitsOfType('bee');
     const wasps = getUnitsOfType('wasp');
 
-    // Check if all enemy units are defeated (only wasps and bees left)
-    if (greyRollers.length === 0 && wasps.length > 0 && bees.length > 0 && blackAnts.length === 0 && redAnts.length === 0 && blueBeetles.length === 0) {
-        logEvent("Only wasps and bees remain. They will battle continuously!", true, true);
-        continuousWaspBeeBattle(wasps, bees); // Start continuous battle
+    // New rules for initial attacks based on ant presence
+    if (blackAnts.length === 0 && blueBeetles.length > 0 && wasps.length > 0) {
+        logEvent("No black ants present. Beetles will attack wasps!", true, true);
+        initiateBeetleAttack(blueBeetles, wasps); // Start beetle to wasp attack
+    }
+
+    if (redAnts.length === 0 && greyRollers.length > 0 && bees.length > 0) {
+        logEvent("No red ants present. Grey rollers will attack bees!", true, true);
+        initiateGreyRollerAttack(greyRollers, bees); // Start grey roller to bee attack
+    }
+
+    // New rule: if only beetles and grey rollers are present, they will attack each other
+    if (blueBeetles.length > 0 && greyRollers.length > 0 && redAnts.length === 0 && blackAnts.length === 0 && bees.length === 0 && wasps.length === 0) {
+        logEvent("Only beetles and grey rollers remain. They will attack each other!", true, true);
+        initiateBeetleGreyRollerAttack(blueBeetles, greyRollers); // Start beetle to grey roller attack
     }
 
     // Check if all enemy units are defeated
@@ -241,7 +252,6 @@ function checkGameStatus() {
         logEvent("All enemy units defeated! You win!", true, true);
         endGame(); // Call a function to handle the end of the game
     }
-
 
     // Check if all player units are defeated
     if (redAnts.length === 0 && blackAnts.length === 0 && blueBeetles.length === 0 && bees.length === 0) {
@@ -278,6 +288,62 @@ function endGame() {
 // *        Main combat functions
 // ***********************************************************************************/
 
+// Function for beetles to attack grey rollers
+function initiateBeetleGreyRollerAttack(beetles, greyRollers) {
+    beetles.forEach(beetle => {
+        const targetGreyRoller = greyRollers.find(roller => getDistance(beetle.position, roller.position) < ATTACK_RANGE);
+        if (targetGreyRoller) {
+            attackUnit(beetle, targetGreyRoller);
+        } else {
+            const closestGreyRoller = greyRollers.reduce((prev, curr) =>
+                getDistance(beetle.position, curr.position) < getDistance(beetle.position, prev.position) ? curr : prev
+            );
+            moveTowards(beetle, closestGreyRoller);
+        }
+    });
+
+    greyRollers.forEach(greyRoller => {
+        const targetBeetle = beetles.find(beetle => getDistance(greyRoller.position, beetle.position) < ATTACK_RANGE);
+        if (targetBeetle) {
+            attackUnit(greyRoller, targetBeetle);
+        } else {
+            const closestBeetle = beetles.reduce((prev, curr) =>
+                getDistance(greyRoller.position, curr.position) < getDistance(greyRoller.position, prev.position) ? curr : prev
+            );
+            moveTowards(greyRoller, closestBeetle);
+        }
+    });
+}
+
+// Function for beetles to attack wasps
+function initiateBeetleAttack(beetles, wasps) {
+    beetles.forEach(beetle => {
+        const targetWasp = wasps.find(wasp => getDistance(beetle.position, wasp.position) < ATTACK_RANGE);
+        if (targetWasp) {
+            attackUnit(beetle, targetWasp);
+        } else {
+            const closestWasp = wasps.reduce((prev, curr) =>
+                getDistance(beetle.position, curr.position) < getDistance(beetle.position, prev.position) ? curr : prev
+            );
+            moveTowards(beetle, closestWasp);
+        }
+    });
+}
+
+// Function for grey rollers to attack bees
+function initiateGreyRollerAttack(greyRollers, bees) {
+    greyRollers.forEach(greyRoller => {
+        const targetBee = bees.find(bee => getDistance(greyRoller.position, bee.position) < ATTACK_RANGE);
+        if (targetBee) {
+            attackUnit(greyRoller, targetBee);
+        } else {
+            const closestBee = bees.reduce((prev, curr) =>
+                getDistance(greyRoller.position, curr.position) < getDistance(greyRoller.position, prev.position) ? curr : prev
+            );
+            moveTowards(greyRoller, closestBee);
+        }
+    });
+}
 
 // Initialize last attack time for all units
 function initializeLastAttackTime() {
