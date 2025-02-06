@@ -228,21 +228,28 @@ function checkGameStatus() {
     const bees = getUnitsOfType('bee');
     const wasps = getUnitsOfType('wasp');
 
-    // New rules for initial attacks based on ant presence
+    // if all the back ants are gone beetles and wasps fight eachother 
     if (blackAnts.length === 0 && blueBeetles.length > 0 && wasps.length > 0) {
         logEvent("No black ants present. Beetles will attack wasps!", true, true);
         initiateBeetleAttack(blueBeetles, wasps); // Start beetle to wasp attack
     }
 
+    // if all the red ants are gone grey rollers and bees fight eachother 
     if (redAnts.length === 0 && greyRollers.length > 0 && bees.length > 0) {
         logEvent("No red ants present. Grey rollers will attack bees!", true, true);
         initiateGreyRollerAttack(greyRollers, bees); // Start grey roller to bee attack
     }
 
-    // New rule: if only beetles and grey rollers are present, they will attack each other
+    // if only beetles and grey rollers are present, they will attack each other
     if (blueBeetles.length > 0 && greyRollers.length > 0 && redAnts.length === 0 && blackAnts.length === 0 && bees.length === 0 && wasps.length === 0) {
         logEvent("Only beetles and grey rollers remain. They will attack each other!", true, true);
         initiateBeetleGreyRollerAttack(blueBeetles, greyRollers); // Start beetle to grey roller attack
+    }
+
+    // if only bees and wasps then they will battle eachother 
+    if (blueBeetles.length === 0 && greyRollers.length === 0 && redAnts.length === 0 && blackAnts.length === 0 && bees.length > 0 && wasps.length > 0) {
+        logEvent("Only beetles and grey rollers remain. They will attack each other!", true, true);
+        continuousWaspBeeBattle(wasps, bees)
     }
 
     // Check if all enemy units are defeated
