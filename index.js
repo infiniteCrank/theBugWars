@@ -212,7 +212,7 @@ function startGame() {
         return
     }
     updateGoldDisplay();
-    rotateCameraDown(45, 1.5); // Rotate down to 45 degrees over 1.5 seconds
+    rotateCameraDown(15, 1.5); // Rotate down to 45 degrees over 1.5 seconds
     iniOrbitControls()
     // Initialize last attack time for all units
     initializeLastAttackTime();
@@ -237,7 +237,7 @@ function checkGameStatus() {
     // Check if all enemy units are defeated
     if (greyRollers.length === 0 &&
         wasps.length === 0 &&
-        blackAnts.length === 0) {
+        blackAnts.length === 0 && gamestarted) {
         logEvent("All enemy units defeated! You win!", true, true);
         endGame(); // Call a function to handle the end of the game
     }
@@ -251,11 +251,29 @@ function checkGameStatus() {
 }
 
 function endGame() {
-    gamestarted = false; // Stop the game logic
-    // Optionally, you could add logic here for restarting the game or providing options to the player.
-    // This could involve resetting the scene, updating the UI, etc.
-    logEvent("Game Over!", false, true);
+    if (gamestarted) {
+        gamestarted = false; // Stop the game logic
+        logEvent("Game Over!", false, true);
+
+        // Clear the scene of all units
+        // scene.children.forEach(unit => {
+        //     if (unit.userData) {
+        //         scene.remove(unit);
+        //     }
+        // });
+
+        // Reset the game variables
+        playerGold = 500; // Reset player gold to starting amount
+        selectedUnit = 'ant'; // Reset selected unit (you can customize this if needed)
+        initializeLastAttackTime(); // Reinitialize last attack times
+        updateGoldDisplay(); // Update the UI for gold
+
+        // Inform user about the restart
+        logEvent("You can now start a new game!", false, true);
+    }
 }
+
+
 // ************************************************************************************
 // *        Main combat functions
 // ***********************************************************************************/
