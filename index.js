@@ -93,6 +93,7 @@ function zoomOutCamera(targetZPosition, duration) {
 //*********************************************************************** */
 
 let playerGold = 500; // Starting player gold
+let enemyGold = 500; // starting ebemy gold 
 const ATTACK_INTERVAL = 0; // Attack every second
 const ATTACK_RANGE = 1.5; // Distance within which units can attack
 let lastAttackTime = {}; // Track the last attack time of each unit
@@ -141,7 +142,6 @@ const enemyUnits = [
 // Function to generate enemy units
 function generateEnemyUnits() {
     const numberOfUnits = 5; // Adjust this number as needed
-    const totalGold = 500; // Total gold available for enemy units
     let spentGold = 0;
 
     for (let i = 0; i < numberOfUnits; i++) {
@@ -149,7 +149,7 @@ function generateEnemyUnits() {
         const unit = enemyUnits[randomIndex];
 
         // Check if there's enough gold to place the unit
-        if (spentGold + unit.cost <= totalGold) {
+        if (spentGold + unit.cost <= enemyGold) {
             // Determine a random position on enemy territory
             const randomX = Math.random() * (ENEMY_TERRITORY_RIGHT - ENEMY_TERRITORY_LEFT) + ENEMY_TERRITORY_LEFT;
 
@@ -248,7 +248,7 @@ function checkGameStatus() {
 
     // if only bees and wasps then they will battle eachother 
     if (blueBeetles.length === 0 && greyRollers.length === 0 && redAnts.length === 0 && blackAnts.length === 0 && bees.length > 0 && wasps.length > 0) {
-        logEvent("Only beetles and grey rollers remain. They will attack each other!", true, true);
+        logEvent("Only bees and wasps remain. They will attack each other!", true, true);
         continuousWaspBeeBattle(wasps, bees)
     }
 
@@ -261,7 +261,9 @@ function checkGameStatus() {
     }
 
     // Check if all player units are defeated
-    if (redAnts.length === 0 && blackAnts.length === 0 && blueBeetles.length === 0 && bees.length === 0) {
+    if (redAnts.length === 0 &&
+        blueBeetles.length === 0 &&
+        bees.length === 0 && gamestarted) {
         logEvent("All your units have been defeated! You lose!", true, true);
         endGame(); // Call a function to handle the end of the game
     }
@@ -272,15 +274,16 @@ function endGame() {
         gamestarted = false; // Stop the game logic
         logEvent("Game Over!", false, true);
 
-        // Clear the scene of all units
-        // scene.children.forEach(unit => {
-        //     if (unit.userData) {
-        //         scene.remove(unit);
-        //     }
-        // });
+        //Clear the scene of all units
+        scene.children.forEach(unit => {
+            if (unit.userData.health) {
+                scene.remove(unit);
+            }
+        });
 
         // Reset the game variables
         playerGold = 500; // Reset player gold to starting amount
+        enemyGold = 500; // Reset player gold to starting amount
         selectedUnit = 'ant'; // Reset selected unit (you can customize this if needed)
         initializeLastAttackTime(); // Reinitialize last attack times
         updateGoldDisplay(); // Update the UI for gold
