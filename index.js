@@ -214,7 +214,6 @@ function startGame() {
     }
     updateGoldDisplay();
     rotateCameraDown(15, 1.5); // Rotate down to 45 degrees over 1.5 seconds
-    iniOrbitControls()
     // Initialize last attack time for all units
     initializeLastAttackTime();
     gamestarted = true;
@@ -229,29 +228,6 @@ function checkGameStatus() {
     const bees = getUnitsOfType('bee');
     const wasps = getUnitsOfType('wasp');
 
-    // if all the back ants are gone beetles and wasps fight eachother 
-    if (blackAnts.length === 0 && blueBeetles.length > 0 && wasps.length > 0) {
-        logEvent("No black ants present. Beetles will attack wasps!", true, true);
-        initiateBeetleAttack(blueBeetles, wasps); // Start beetle to wasp attack
-    }
-
-    // if all the red ants are gone grey rollers and bees fight eachother 
-    if (redAnts.length === 0 && greyRollers.length > 0 && bees.length > 0) {
-        logEvent("No red ants present. Grey rollers will attack bees!", true, true);
-        initiateGreyRollerAttack(greyRollers, bees); // Start grey roller to bee attack
-    }
-
-    // if only beetles and grey rollers are present, they will attack each other
-    if (blueBeetles.length > 0 && greyRollers.length > 0 && redAnts.length === 0 && blackAnts.length === 0 && bees.length === 0 && wasps.length === 0) {
-        logEvent("Only beetles and grey rollers remain. They will attack each other!", true, true);
-        initiateBeetleGreyRollerAttack(blueBeetles, greyRollers); // Start beetle to grey roller attack
-    }
-
-    // if only bees and wasps then they will battle eachother 
-    if (blueBeetles.length === 0 && greyRollers.length === 0 && redAnts.length === 0 && blackAnts.length === 0 && bees.length > 0 && wasps.length > 0) {
-        logEvent("Only bees and wasps remain. They will attack each other!", true, true);
-        continuousWaspBeeBattle(wasps, bees)
-    }
 
     // Check if all enemy units are defeated
     if (greyRollers.length === 0 &&
@@ -268,6 +244,28 @@ function checkGameStatus() {
         logEvent("All your units have been defeated! You lose!", true, true);
         endGame(); // Call a function to handle the end of the game
     }
+
+    // if all the back ants are gone beetles and wasps fight eachother 
+    if (blackAnts.length === 0 && blueBeetles.length > 0 && wasps.length > 0) {
+        initiateBeetleAttack(blueBeetles, wasps); // Start beetle to wasp attack
+    }
+
+    // if all the red ants are gone grey rollers and bees fight eachother 
+    if (redAnts.length === 0 && greyRollers.length > 0 && bees.length > 0) {
+        initiateGreyRollerAttack(greyRollers, bees); // Start grey roller to bee attack
+    }
+
+    // if only beetles and grey rollers are present, they will attack each other
+    if (blueBeetles.length > 0 && greyRollers.length > 0 && redAnts.length === 0 && blackAnts.length === 0 && bees.length === 0 && wasps.length === 0) {
+        initiateBeetleGreyRollerAttack(blueBeetles, greyRollers); // Start beetle to grey roller attack
+    }
+
+    // if only bees and wasps then they will battle eachother 
+    if (blueBeetles.length === 0 && greyRollers.length === 0 && redAnts.length === 0 && blackAnts.length === 0 && bees.length > 0 && wasps.length > 0) {
+        continuousWaspBeeBattle(wasps, bees)
+    }
+
+
 }
 
 function endGame() {
@@ -285,6 +283,8 @@ function endGame() {
         // Reset the game variables
         playerGold = 500; // Reset player gold to starting amount
         enemyGold = 500; // Reset player gold to starting amount
+        // generate enemies before start of the game 
+        generateEnemyUnits();
         selectedUnit = 'ant'; // Reset selected unit (you can customize this if needed)
         initializeLastAttackTime(); // Reinitialize last attack times
         updateGoldDisplay(); // Update the UI for gold
@@ -375,10 +375,12 @@ function initiateCombat() {
     const wasps = getUnitsOfType('wasp');
 
     // Process each unit type for their combat interactions
-    moveAndAttack(redAnts, blackAnts, greyRollers);
-    moveAndAttack(blackAnts, redAnts, blueBeetles);
-    moveAndAttack(bees, blackAnts);
-    moveAndAttack(wasps, redAnts);
+    moveAndAttack(redAnts, blackAnts, greyRollers, wasps);
+    moveAndAttack(blackAnts, redAnts, blueBeetles, bees);
+    moveAndAttack(bees, greyRollers, blackAnts, wasps);
+    moveAndAttack(wasps, blueBeetles, redAnts, bees);
+    moveAndAttack(blueBeetles, blackAnts, wasps, greyRollers);
+    moveAndAttack(greyRollers, redAnts, bees, blueBeetles);
 
     // Check the status of units and trigger appropriate moves
     if (areAllAntsDefeated()) {
@@ -389,7 +391,7 @@ function initiateCombat() {
 
 }
 
-function moveAndAttack(attackingUnits, primaryTargets, secondaryTargets) {
+function moveAndAttack(attackingUnits, primaryTargets, secondaryTargets, tirshiaryTarget) {
     attackingUnits.forEach(attacker => {
         const currentTime = Date.now();
 
@@ -408,10 +410,11 @@ function moveAndAttack(attackingUnits, primaryTargets, secondaryTargets) {
         }
 
         // If no primary targets, check secondary targets
+        let secondTarget = (secondaryTargets) ? secondaryTargets.find(defender => getDistance(attacker.position, defender.position) < ATTACK_RANGE) : false;
+
         if (!target && secondaryTargets) {
-            target = secondaryTargets.find(defender => getDistance(attacker.position, defender.position) < ATTACK_RANGE);
-            if (target && currentTime - lastAttackTime[attacker.uuid] >= ATTACK_INTERVAL) {
-                attackUnit(attacker, target);
+            if (secondTarget && currentTime - lastAttackTime[attacker.uuid] >= ATTACK_INTERVAL) {
+                attackUnit(attacker, secondTarget);
                 lastAttackTime[attacker.uuid] = currentTime; // Update the last attack time
             } else if (secondaryTargets.length > 0) {
                 const closestTarget = secondaryTargets.reduce((prev, curr) =>
@@ -421,6 +424,23 @@ function moveAndAttack(attackingUnits, primaryTargets, secondaryTargets) {
                 moveTowards(attacker, closestTarget);
             }
         }
+
+        // If no primary targets,  or second targets. check third  targets
+        let thirdTarget = (tirshiaryTarget) ? tirshiaryTarget.find(defender => getDistance(attacker.position, defender.position) < ATTACK_RANGE) : false;
+
+        if (!target && !secondTarget && tirshiaryTarget) {
+            if (thirdTarget && currentTime - lastAttackTime[attacker.uuid] >= ATTACK_INTERVAL) {
+                attackUnit(attacker, thirdTarget);
+                lastAttackTime[attacker.uuid] = currentTime; // Update the last attack time
+            } else if (tirshiaryTarget.length > 0) {
+                const closestTarget = tirshiaryTarget.reduce((prev, curr) =>
+                    getDistance(attacker.position, curr.position) < getDistance(attacker.position, prev.position) ? curr : prev
+                );
+
+                moveTowards(attacker, closestTarget);
+            }
+        }
+
     });
 }
 
@@ -556,17 +576,19 @@ function continuousWaspBeeBattle(wasps, bees) {
     if (anyWaspsAlive && anyBeesAlive) {
         requestAnimationFrame(() => continuousWaspBeeBattle(wasps, bees));
     } else {
-        if (anyWaspsAlive) {
+        if (anyWaspsAlive && gamestarted) {
             logEvent("All your units have been defeated! You lose!", true, true);
             endGame(); // Call a function to handle the end of the game
         }
-        if (anyBeesAlive) {
+        if (anyBeesAlive && gamestarted) {
             logEvent("All enemy units defeated! You win!", true, true);
             endGame(); // Call a function to handle the end of the game
         }
+        if (gamestarted) {
+            logEvent("The battle has ended!", true, true);
+            endGame(); // or handle end game differently
+        }
 
-        logEvent("The battle has ended!", true, true);
-        endGame(); // or handle end game differently
     }
 }
 
