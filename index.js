@@ -157,6 +157,7 @@ function generateEnemyUnits() {
             createEnemyUnit(unit.type, randomX, 0); // Assuming y=0 for flat plane
             spentGold += unit.cost; // Update spent gold
         }
+        document.getElementById("enemyGold").innerHTML = "Enemy Gold: " + (enemyGold - spentGold)
     }
 }
 
