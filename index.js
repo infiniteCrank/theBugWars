@@ -17,7 +17,6 @@ const playerTerritory = new THREE.Mesh(playerTerritoryMesh, playerTerritoryMater
 
 // Position the first half (left side)
 playerTerritory.position.x = -50; // Move it to the left
-playerTerritory.rotation.z = Math.PI / 2; //Rotate to display correctly
 scene.add(playerTerritory);
 
 // Create a geometry for the second half
@@ -27,66 +26,9 @@ const enemyTerritory = new THREE.Mesh(enemyTerritoryMesh, enemyTerritoryMaterial
 
 // Position the second half (right side)
 enemyTerritory.position.x = 50; // Move it to the right
-enemyTerritory.rotation.z = Math.PI / 2; //Rotate to display correctly
 scene.add(enemyTerritory);
 
-camera.position.z = 50;
-
-// Initialize OrbitControls
-function iniOrbitControls() {
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableZoom = true;
-    controls.target.set(0, 0, 0);
-    controls.update();
-    logEvent("Initialize orbit controls.", false, false);
-}
-
-// Function to rotate the camera down and zoom out
-function rotateCameraDown(targetAngle, duration) {
-    const targetYRotation = THREE.MathUtils.degToRad(targetAngle);
-    const initialYRotation = camera.rotation.x;
-
-    const startTime = performance.now();
-
-    function animateRotation(now) {
-        const elapsedTime = (now - startTime) / 1000; // Convert to seconds
-        const progress = Math.min(elapsedTime / duration, 1); // Normalize to [0, 1]
-
-        // Interpolating between initial and target rotation
-        camera.rotation.x = THREE.MathUtils.lerp(initialYRotation, targetYRotation, progress);
-
-        // Continue the animation until the duration is complete
-        if (progress < 1) {
-            requestAnimationFrame(animateRotation);
-        } else {
-            // Once rotation is done, zoom out smoothly
-            zoomOutCamera(75, 1); // Assuming your current z position is around 50
-        }
-    }
-
-    requestAnimationFrame(animateRotation);
-}
-
-// Function to zoom out the camera
-function zoomOutCamera(targetZPosition, duration) {
-    const initialZPosition = camera.position.z;
-    const startTime = performance.now();
-
-    function animateZoom(now) {
-        const elapsedTime = (now - startTime) / 1000; // Convert to seconds
-        const progress = Math.min(elapsedTime / duration, 1); // Normalize to [0, 1]
-
-        // Interpolating between initial and target z position
-        camera.position.z = THREE.MathUtils.lerp(initialZPosition, targetZPosition, progress);
-
-        // Continue the animation until the duration is complete
-        if (progress < 1) {
-            requestAnimationFrame(animateZoom);
-        }
-    }
-
-    requestAnimationFrame(animateZoom);
-}
+camera.position.z = 70;
 
 //**************************************************************************
 //*         Begin Game Logic 
@@ -213,7 +155,6 @@ function startGame() {
         return
     }
     updateGoldDisplay();
-    rotateCameraDown(15, 1.5); // Rotate down to 45 degrees over 1.5 seconds
     // Initialize last attack time for all units
     initializeLastAttackTime();
     gamestarted = true;
@@ -646,63 +587,94 @@ function placeUnit(event) {
 
 // Function to create unit
 function createUnit(unitType, mouseX, mouseY) {
-    // Convert screen coordinates to normalized device coordinates
     const rect = renderer.domElement.getBoundingClientRect();
     const x = ((mouseX - rect.left) / rect.width) * 2 - 1;
     const y = -((mouseY - rect.top) / rect.height) * 2 + 1;
 
-    // Create a vector from the normalized device coordinates
-    const vector = new THREE.Vector3(x, y, 0.5); // Use z = 0.5 for depth
-    vector.unproject(camera); // Unproject the coordinates onto the 3D space
+    const vector = new THREE.Vector3(x, y, 0.5);
+    vector.unproject(camera);
 
-    // Calculate the position on the plane
     const dir = vector.sub(camera.position).normalize();
-    const distance = - camera.position.z / dir.z; // Assuming the camera's location
+    const distance = -camera.position.z / dir.z;
     const position = camera.position.clone().add(dir.multiplyScalar(distance));
 
-    // Create a basic geometry for the unit
-    const geometry = new THREE.BoxGeometry(1, 1, 1); // Placeholder shape
-    let color;
-    let health;
-    let damage;
-    switch (unitType) {
-        case 'beetle':
-            color = 0x0000ff; // Blue
-            health = BEETLE_HEALTH;
-            damage = BEETLE_DAMAGE;
-            break;
-        case 'ant':
-            color = 0xff0000; // Green
-            health = ANT_HEALTH;
-            damage = ANT_DAMAGE;
-            break;
-        case 'bee':
-            color = 0xffff00; // Yellow
-            health = BEE_HEALTH;
-            damage = BEE_DAMAGE;
-            break;
-        default:
-            return; // Invalid unit type
+    if (unitType === 'beetle') {
+        const loader = new GLTFLoader();
+        loader.load('beetle.glb', (gltf) => {
+            const beetle = gltf.scene;
+
+            // Scale the model if necessary
+            beetle.scale.set(1, 1, 1);
+
+            // Set position
+            beetle.position.set(position.x, position.y, 5);
+            beetle.rotation.x = 90;
+            beetle.rotation.y = 89.5;
+
+            beetle.userData = {
+                health: BEETLE_HEALTH,
+                damage: BEETLE_DAMAGE,
+                velocity: new THREE.Vector3(0, 0, 0),
+                unitType: 'beetle'
+            };
+            scene.add(beetle);
+
+            // Start animation (if animations are present in the GLB)
+            const mixer = new THREE.AnimationMixer(beetle);
+            gltf.animations.forEach((clip) => {
+                mixer.clipAction(clip).play();
+                mixer.clipAction(clip).setEffectiveTimeScale(1000);
+            });
+
+            beetle.animationMixer = mixer;
+        });
+    } else {
+        // Existing logic for other units
+        const geometry = new THREE.BoxGeometry(1, 1, 1);
+        let color;
+        let health;
+        let damage;
+
+        switch (unitType) {
+            case 'ant':
+                color = 0xff0000;
+                health = ANT_HEALTH;
+                damage = ANT_DAMAGE;
+                break;
+            case 'bee':
+                color = 0xffff00;
+                health = BEE_HEALTH;
+                damage = BEE_DAMAGE;
+                break;
+            default:
+                return;
+        }
+
+        const material = new THREE.MeshBasicMaterial({ color });
+        const unit = new THREE.Mesh(geometry, material);
+
+        unit.position.set(position.x, position.y, 0);
+        unit.userData = {
+            health: health,
+            damage: damage,
+            velocity: new THREE.Vector3(0, 0, 0),
+            unitType: unitType
+        };
+        scene.add(unit);
     }
-
-    const material = new THREE.MeshBasicMaterial({ color });
-    const unit = new THREE.Mesh(geometry, material);
-
-    // Set position to calculated position
-    unit.position.set(position.x, position.y, 0); // Adjust z as needed
-    unit.userData = {
-        health: health,
-        damage: damage,
-        velocity: new THREE.Vector3(0, 0, 0),
-        unitType: unitType
-    };
-    scene.add(unit);
 }
 
 // Animation loop
 function animate() {
     requestAnimationFrame(animate);
     renderer.render(scene, camera);
+
+    // Update animation mixers
+    scene.children.forEach((child) => {
+        if (child.animationMixer) {
+            child.animationMixer.update(0.01); // Adjust delta time appropriately
+        }
+    });
 
     // Update combat logic in each animation frame
     if (gamestarted === true) {
