@@ -151,13 +151,21 @@ generateEnemyUnits();
 // Initialize the game state
 function startGame() {
     if (playerGold > 0) {
-        logEvent("You  must spend all your gold befor teh game starts", true, true);
+        logEvent("You  must spend all your gold befor the game starts", true, true);
         return
     }
     updateGoldDisplay();
     // Initialize last attack time for all units
     initializeLastAttackTime();
     gamestarted = true;
+
+    // Start beetle animations now that the game has started
+    const beetles = getUnitsOfType('beetle');
+    beetles.forEach(beetle => {
+        if (beetle.animationActions) {
+            beetle.animationActions.forEach(action => action.play());
+        }
+    });
 }
 
 // Updated checkGameStatus to incorporate the beetle and grey roller rule
@@ -215,11 +223,15 @@ function endGame() {
         logEvent("Game Over!", false, true);
 
         //Clear the scene of all units
-        scene.children.forEach(unit => {
-            if (unit.userData.health) {
+        // Create a copy of the scene's children to safely iterate over
+        const units = scene.children.slice();
+        units.forEach((unit) => {
+            // Remove any object that has a unitType property
+            if (unit.userData && unit.userData.unitType) {
                 scene.remove(unit);
             }
         });
+
 
         // Reset the game variables
         playerGold = 500; // Reset player gold to starting amount
@@ -621,9 +633,11 @@ function createUnit(unitType, mouseX, mouseY) {
 
             // Start animation (if animations are present in the GLB)
             const mixer = new THREE.AnimationMixer(beetle);
+            beetle.animationActions = []; // Store actions here
             gltf.animations.forEach((clip) => {
-                mixer.clipAction(clip).play();
-                mixer.clipAction(clip).setEffectiveTimeScale(1000);
+                const action = mixer.clipAction(clip);
+                action.setEffectiveTimeScale(1000);
+                beetle.animationActions.push(action);
             });
 
             beetle.animationMixer = mixer;
