@@ -166,6 +166,14 @@ function startGame() {
             beetle.animationActions.forEach(action => action.play());
         }
     });
+
+    // Start ant animations now that the game has started
+    const ants = getUnitsOfType('ant');
+    ants.forEach(ant => {
+        if (ant.animationActions) {
+            ant.animationActions.forEach(action => action.play());
+        }
+    });
 }
 
 // Updated checkGameStatus to incorporate the beetle and grey roller rule
@@ -642,6 +650,38 @@ function createUnit(unitType, mouseX, mouseY) {
 
             beetle.animationMixer = mixer;
         });
+    } else if (unitType === 'ant') {
+        const loader = new GLTFLoader();
+        loader.load('ant.glb', (gltf) => {
+            const ant = gltf.scene;
+
+            // Scale the model if necessary
+            ant.scale.set(.5, .5, .5);
+
+            // Set position
+            ant.position.set(position.x, position.y, 5);
+            ant.rotation.x = 90;
+            ant.rotation.y = 89.5;
+
+            ant.userData = {
+                health: ANT_HEALTH,
+                damage: ANT_DAMAGE,
+                velocity: new THREE.Vector3(0, 0, 0),
+                unitType: 'ant'
+            };
+            scene.add(ant);
+
+            // Start animation (if animations are present in the GLB)
+            const mixer = new THREE.AnimationMixer(ant);
+            ant.animationActions = []; // Store actions here
+            gltf.animations.forEach((clip) => {
+                const action = mixer.clipAction(clip);
+                //action.setEffectiveTimeScale(1000);
+                ant.animationActions.push(action);
+            });
+
+            ant.animationMixer = mixer;
+        });
     } else {
         // Existing logic for other units
         const geometry = new THREE.BoxGeometry(1, 1, 1);
@@ -650,11 +690,6 @@ function createUnit(unitType, mouseX, mouseY) {
         let damage;
 
         switch (unitType) {
-            case 'ant':
-                color = 0xff0000;
-                health = ANT_HEALTH;
-                damage = ANT_DAMAGE;
-                break;
             case 'bee':
                 color = 0xffff00;
                 health = BEE_HEALTH;
