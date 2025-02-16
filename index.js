@@ -9,6 +9,14 @@ const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
+// Add lighting to the scene
+const ambientLight = new THREE.AmbientLight(0x404040); // Soft white light
+scene.add(ambientLight);
+
+const directionalLight = new THREE.DirectionalLight(0xffffff, 1); // White directional light
+directionalLight.position.set(0, 10, 10).normalize();
+scene.add(directionalLight);
+
 // Create a basic plane to represent the battlefield
 // Create a geometry for the first half
 const playerTerritoryMesh = new THREE.PlaneGeometry(100, 100);
@@ -676,7 +684,7 @@ function createUnit(unitType, mouseX, mouseY) {
             ant.animationActions = []; // Store actions here
             gltf.animations.forEach((clip) => {
                 const action = mixer.clipAction(clip);
-                //action.setEffectiveTimeScale(1000);
+
                 ant.animationActions.push(action);
             });
 
