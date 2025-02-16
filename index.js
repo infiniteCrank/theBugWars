@@ -158,10 +158,6 @@ generateEnemyUnits();
 
 // Initialize the game state
 function startGame() {
-    if (playerGold > 0) {
-        logEvent("You  must spend all your gold befor the game starts", true, true);
-        return
-    }
     updateGoldDisplay();
     // Initialize last attack time for all units
     initializeLastAttackTime();
