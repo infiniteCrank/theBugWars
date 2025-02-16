@@ -51,16 +51,16 @@ let gamestarted = false
 
 // unit costs
 const unitCosts = {
-    beetle: 100,
-    ant: 50,
-    bee: 250
+    beetle: 120,
+    ant: 60,
+    bee: 220
 };
-const BEETLE_HEALTH = 100;
-const BEETLE_DAMAGE = 1;
-const ANT_HEALTH = 50;
-const ANT_DAMAGE = 5;
-const BEE_HEALTH = 10;
-const BEE_DAMAGE = 10;
+const BEETLE_HEALTH = 90;
+const BEETLE_DAMAGE = 2;
+const ANT_HEALTH = 40;
+const ANT_DAMAGE = 6;
+const BEE_HEALTH = 8;
+const BEE_DAMAGE = 12;
 // Define enemy territory boundaries
 const ENEMY_TERRITORY_LEFT = 0;   // Left side boundary for enemy territory
 const ENEMY_TERRITORY_RIGHT = 100;  // Right side boundary for enemy territory
@@ -76,12 +76,12 @@ const enemyUnitCosts = {
 };
 
 // Define equivalent attributes for enemy units
-const WASP_HEALTH = 10;
-const WASP_DAMAGE = 10;
-const BLACK_ANT_HEALTH = 50;
-const BLACK_ANT_DAMAGE = 5;
-const GREY_ROLLER_HEALTH = 100;
-const GREY_ROLLER_DAMAGE = 1;
+const WASP_HEALTH = 8;
+const WASP_DAMAGE = 12;
+const BLACK_ANT_HEALTH = 40;
+const BLACK_ANT_DAMAGE = 6;
+const GREY_ROLLER_HEALTH = 90;
+const GREY_ROLLER_DAMAGE = 2;
 
 const enemyUnits = [
     { type: 'wasp', cost: enemyUnitCosts.wasp, health: WASP_HEALTH, damage: WASP_DAMAGE },
