@@ -64,6 +64,9 @@ const BEE_DAMAGE = 10;
 // Define enemy territory boundaries
 const ENEMY_TERRITORY_LEFT = 0;   // Left side boundary for enemy territory
 const ENEMY_TERRITORY_RIGHT = 100;  // Right side boundary for enemy territory
+// Define Y-coordinate range for enemy territory
+const ENEMY_TERRITORY_BOTTOM_Y = -50; // Bottom boundary
+const ENEMY_TERRITORY_TOP_Y = 50;     // Top boundary
 
 // This is the type of unit the player has selected to place next 
 let selectedUnit = 'ant';
@@ -92,6 +95,13 @@ const enemyUnits = [
 //*************************************************************************************** */
 // Function to generate enemy units
 //*************************************************************************************** */
+
+// Function to generate random Y-coordinate within enemy territory
+function getRandomYPosition() {
+    const y = Math.random() * (ENEMY_TERRITORY_TOP_Y - ENEMY_TERRITORY_BOTTOM_Y) + ENEMY_TERRITORY_BOTTOM_Y;
+    return y;
+}
+
 function generateEnemyUnits() {
     const numberOfUnits = 50; // Adjust this number as needed
     let spentGold = 0;
@@ -104,15 +114,15 @@ function generateEnemyUnits() {
         if (spentGold + unit.cost <= enemyGold) {
             // Determine a random position on enemy territory
             const randomX = Math.random() * (ENEMY_TERRITORY_RIGHT - ENEMY_TERRITORY_LEFT) + ENEMY_TERRITORY_LEFT;
-
+            const randomY = getRandomYPosition();
             // Create the unit at the random position
-            createEnemyUnit(unit.type, randomX, 0); // Assuming y=0 for flat plane
+            createEnemyUnit(unit.type, randomX, randomY); // Assuming y=0 for flat plane
             spentGold += unit.cost; // Update spent gold
         }
     }
     enemyGold = enemyGold - spentGold;
     console.log("enemy gold after buying units: " + enemyGold)
-    document.getElementById("enemyGold").innerHTML = "Enemy Gold: " + enemyGold
+    updateGoldDisplay();
 }
 
 // Function to create enemy unit
