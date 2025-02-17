@@ -301,32 +301,37 @@ function createUnit(unitType, mouseX, mouseY) {
             ant.animationMixer = mixer;
         });
     } else {
-        const geometry = new THREE.BoxGeometry(1, 1, 1);
-        let color;
-        let health;
-        let damage;
+        const loader = new GLTFLoader();
+        loader.load('bee.glb', (gltf) => {
+            const bee = gltf.scene;
 
-        switch (unitType) {
-            case 'bee':
-                color = 0xffff00;
-                health = BEE_HEALTH;
-                damage = BEE_DAMAGE;
-                break;
-            default:
-                return;
-        }
+            // Scale the model if necessary
+            bee.scale.set(1, 1, 1);
 
-        const material = new THREE.MeshBasicMaterial({ color });
-        const unit = new THREE.Mesh(geometry, material);
+            // Set position
+            bee.position.set(position.x, position.y, 5);
+            bee.rotation.x = 90;
+            bee.rotation.y = 89.5;
 
-        unit.position.set(position.x, position.y, 0);
-        unit.userData = {
-            health: health,
-            damage: damage,
-            velocity: new THREE.Vector3(0, 0, 0),
-            unitType: unitType
-        };
-        scene.add(unit);
+            bee.userData = {
+                health: BEE_HEALTH,
+                damage: BEE_DAMAGE,
+                velocity: new THREE.Vector3(0, 0, 0),
+                unitType: 'bee'
+            };
+            scene.add(bee);
+
+            // Start animation (if animations are present in the GLB)
+            const mixer = new THREE.AnimationMixer(bee);
+            bee.animationActions = []; // Store actions here
+            gltf.animations.forEach((clip) => {
+                const action = mixer.clipAction(clip);
+                action.setEffectiveTimeScale(1000);
+                bee.animationActions.push(action);
+            });
+
+            bee.animationMixer = mixer;
+        });
     }
 }
 
@@ -354,6 +359,14 @@ function startGame() {
             ant.animationActions.forEach(action => action.play());
         }
     });
+
+    // Start ant animations now that the game has started
+    const bees = getUnitsOfType('bee');
+    bees.forEach(bee => {
+        if (bee.animationActions) {
+            bee.animationActions.forEach(action => action.play());
+        }
+    });
 }
 
 // Updated checkGameStatus to incorporate the beetle and grey roller rule
@@ -371,9 +384,9 @@ function checkGameStatus() {
         wasps.length === 0 &&
         blackAnts.length === 0 && gamestarted) {
         logEvent("All enemy units defeated! You win!", true, true);
-        let goldEarned = 5 * redAnts.length;
-        goldEarned += 5 * blueBeetles.length;
-        goldEarned += 5 * bees.length;
+        let goldEarned = unitCosts.ant * redAnts.length;
+        goldEarned += 5 * unitCosts.beetle * blueBeetles.length;
+        goldEarned += 5 * unitCosts.bee * bees.length;
         playerGold += goldEarned + 500;
         enemyGold += 500;
         updateGoldDisplay();
@@ -385,9 +398,9 @@ function checkGameStatus() {
         blueBeetles.length === 0 &&
         bees.length === 0 && gamestarted) {
         logEvent("All your units have been defeated! You lose!", true, true);
-        let goldEarned = 5 * blackAnts.length;
-        goldEarned += 5 * greyRollers.length;
-        goldEarned += 5 * wasps.length;
+        let goldEarned = enemyUnitCosts.blackAnt * blackAnts.length;
+        goldEarned += enemyUnitCosts.greyRoller * greyRollers.length;
+        goldEarned += enemyUnitCosts.wasp * wasps.length;
         enemyGold += goldEarned + 500;
         playerGold += 500;
         updateGoldDisplay();
