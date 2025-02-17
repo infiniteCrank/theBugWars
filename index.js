@@ -58,9 +58,9 @@ const unitCosts = {
 const BEETLE_HEALTH = 90;
 const BEETLE_DAMAGE = 2;
 const ANT_HEALTH = 40;
-const ANT_DAMAGE = 6;
-const BEE_HEALTH = 8;
-const BEE_DAMAGE = 12;
+const ANT_DAMAGE = 3;
+const BEE_HEALTH = 12;
+const BEE_DAMAGE = 10;
 // Define enemy territory boundaries
 const ENEMY_TERRITORY_LEFT = 0;   // Left side boundary for enemy territory
 const ENEMY_TERRITORY_RIGHT = 100;  // Right side boundary for enemy territory
@@ -70,16 +70,16 @@ let selectedUnit = 'ant';
 
 // Define unit costs for enemy units
 const enemyUnitCosts = {
-    wasp: 250,
-    blackAnt: 50,
-    greyRoller: 100
+    wasp: 220,
+    blackAnt: 60,
+    greyRoller: 120
 };
 
 // Define equivalent attributes for enemy units
-const WASP_HEALTH = 8;
-const WASP_DAMAGE = 12;
+const WASP_HEALTH = 12;
+const WASP_DAMAGE = 10;
 const BLACK_ANT_HEALTH = 40;
-const BLACK_ANT_DAMAGE = 6;
+const BLACK_ANT_DAMAGE = 3;
 const GREY_ROLLER_HEALTH = 90;
 const GREY_ROLLER_DAMAGE = 2;
 
@@ -93,7 +93,7 @@ const enemyUnits = [
 // Function to generate enemy units
 //*************************************************************************************** */
 function generateEnemyUnits() {
-    const numberOfUnits = 5; // Adjust this number as needed
+    const numberOfUnits = 50; // Adjust this number as needed
     let spentGold = 0;
 
     for (let i = 0; i < numberOfUnits; i++) {
@@ -109,8 +109,10 @@ function generateEnemyUnits() {
             createEnemyUnit(unit.type, randomX, 0); // Assuming y=0 for flat plane
             spentGold += unit.cost; // Update spent gold
         }
-        document.getElementById("enemyGold").innerHTML = "Enemy Gold: " + (enemyGold - spentGold)
     }
+    enemyGold = enemyGold - spentGold;
+    console.log("enemy gold after buying units: " + enemyGold)
+    document.getElementById("enemyGold").innerHTML = "Enemy Gold: " + enemyGold
 }
 
 // Function to create enemy unit
@@ -289,7 +291,6 @@ function createUnit(unitType, mouseX, mouseY) {
             ant.animationMixer = mixer;
         });
     } else {
-        // Existing logic for other units
         const geometry = new THREE.BoxGeometry(1, 1, 1);
         let color;
         let health;
@@ -360,6 +361,12 @@ function checkGameStatus() {
         wasps.length === 0 &&
         blackAnts.length === 0 && gamestarted) {
         logEvent("All enemy units defeated! You win!", true, true);
+        let goldEarned = 5 * redAnts.length;
+        goldEarned += 5 * blueBeetles.length;
+        goldEarned += 5 * bees.length;
+        playerGold += goldEarned + 500;
+        enemyGold += 500;
+        updateGoldDisplay();
         endGame(); // Call a function to handle the end of the game
     }
 
@@ -368,6 +375,12 @@ function checkGameStatus() {
         blueBeetles.length === 0 &&
         bees.length === 0 && gamestarted) {
         logEvent("All your units have been defeated! You lose!", true, true);
+        let goldEarned = 5 * blackAnts.length;
+        goldEarned += 5 * greyRollers.length;
+        goldEarned += 5 * wasps.length;
+        enemyGold += goldEarned + 500;
+        playerGold += 500;
+        updateGoldDisplay();
         endGame(); // Call a function to handle the end of the game
     }
 
@@ -389,13 +402,8 @@ function endGame() {
             }
         });
 
-
-        // Reset the game variables
-        playerGold = 500; // Reset player gold to starting amount
-        enemyGold = 500; // Reset player gold to starting amount
         // generate enemies before start of the game 
         generateEnemyUnits();
-        selectedUnit = 'ant'; // Reset selected unit (you can customize this if needed)
         initializeLastAttackTime(); // Reinitialize last attack times
         updateGoldDisplay(); // Update the UI for gold
 
@@ -575,6 +583,7 @@ document.getElementById('beeButton').addEventListener('click', () => selectUnit(
 // Function to update gold display on UI
 function updateGoldDisplay() {
     document.getElementById('playerGold').textContent = `Player Gold: ${playerGold}`;
+    document.getElementById('enemyGold').textContent = `Enemy Gold: ${enemyGold}`;
 }
 
 // Handle window resizing
